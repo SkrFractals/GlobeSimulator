@@ -87,33 +87,33 @@ Average Distance to the Sun:
 
 Precision errors already accounted for:
 
--Earth's orbit is elliptical instead or a perfect circle (implemented elliptical Sun's angle and distance correction)
-ERROR SIZE: Sun size ~0.9%, Sun Location on the sky - up to 2 degrees orbital angles in between aphelion and perihelion
+- Earth's orbit is elliptical instead or a perfect circle (implemented elliptical Sun's angle and distance correction)
+-- ERROR SIZE: Sun size ~0.9%, Sun Location on the sky - up to 2 degrees orbital angles in between aphelion and perihelion
 
 -Leap days (the year doesn't have exactly 365 days, but it does in this simulation)
-ERROR SIZE: missing February 29, up to 1 degree of orbital angle 
+-- ERROR SIZE: missing February 29, up to 1 degree of orbital angle 
 
--Horizon curvature and atmospheric refraction letting you see slightly more than 180 degrees of sky
-ERROR SIZE: 1.21 degrees below horizon
+- Horizon curvature and atmospheric refraction letting you see slightly more than 180 degrees of sky
+-- ERROR SIZE: 1.21 degrees below horizon
 
--Magnetic north is not exactly at axial North
-ERROR SIZE: up to 5 degrees of compass North offset
+- Magnetic north is not exactly at axial North
+-- ERROR SIZE: up to 5 degrees of compass North offset
 
--Globe's oblateness (the simulation works with a perfectly spherical Globe)
-ERROR SIZE: up to 0.3% in observer location (but negligible for this simulation)
+- Globe's oblateness (the simulation works with a perfectly spherical Globe)
+-- ERROR SIZE: up to 0.3% in observer location (but negligible for this simulation)
 
--Since the Sun isn't infinitely far away, it should move in a parallax slightly based on where on the Globe the observer is. (the simulation pretends the Sun is infinitely far away and makes perfectly parallel rays)
-ERROR SIZE: up to 9 arc seconds (very small)
+- Since the Sun isn't infinitely far away, it should move in a parallax slightly based on where on the Globe the observer is. (the simulation pretends the Sun is infinitely far away and makes perfectly parallel rays)
+-- ERROR SIZE: up to 9 arc seconds (very small)
 
 ---------------------------------------------------------
 
 Precision errors not accounted for (yet):
 
--No mountains and other surface irregularities.
-ERROR SIZE: None with Sea on Horizon
-IMPLEMENTATION DIFFICULTY: 10/10 (would have to implement all the mountains on Earth, not going to do that)
+- No mountains and other surface irregularities.
+-- ERROR SIZE: None with Sea on Horizon
+-- IMPLEMENTATION DIFFICULTY: 10/10 (would have to implement all the mountains on Earth, not going to do that)
 
--The simulation aligns the compass precisely to the magnetic north, but i real life, there can be a lot of secondary things that can slightly nudge your compass needle, like nearby iron and magnets.
-ERROR SIZE: Unknown
-IMPLEMENTATION DIFFICULTY: 11/10 No idea how I could easily account for this, I would need to know the insides of the Earth perfectly and your real compass would have stayed away from any magnetic objects that I have no control over.
+- The simulation aligns the compass precisely to the magnetic north, but i real life, there can be a lot of secondary things that can slightly nudge your compass needle, like nearby iron and magnets.
+-- ERROR SIZE: Unknown
+-- IMPLEMENTATION DIFFICULTY: 11/10 No idea how I could easily account for this, I would need to know the insides of the Earth perfectly and your real compass would have stayed away from any magnetic objects that I have no control over.
 
