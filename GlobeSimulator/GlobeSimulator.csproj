@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="MapEarth.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="MapEarth.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Sky.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Globe.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="RenderForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Chart.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+
+</Project>
