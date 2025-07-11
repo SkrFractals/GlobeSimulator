@@ -77,6 +77,9 @@
 			globeDetailBox = new ComboBox();
 			auBox = new TextBox();
 			label5 = new Label();
+			dateLabel = new Label();
+			timePicker = new DateTimePicker();
+			datePicker = new DateTimePicker();
 			((System.ComponentModel.ISupportInitialize)timeBar).BeginInit();
 			((System.ComponentModel.ISupportInitialize)latitudeBar).BeginInit();
 			((System.ComponentModel.ISupportInitialize)longitudeBar).BeginInit();
@@ -87,7 +90,7 @@
 			// 
 			tick.Enabled = true;
 			tick.Interval = 50;
-			tick.Tick += tick_Tick;
+			tick.Tick += Tick_Tick;
 			// 
 			// tiltBox
 			// 
@@ -95,9 +98,9 @@
 			tiltBox.Margin = new Padding(4, 3, 4, 3);
 			tiltBox.Name = "tiltBox";
 			tiltBox.Size = new Size(75, 23);
-			tiltBox.TabIndex = 4;
+			tiltBox.TabIndex = 18;
 			tiltBox.Text = "23.44";
-			tiltBox.TextChanged += tiltBox_TextChanged;
+			tiltBox.TextChanged += TiltBox_TextChanged;
 			// 
 			// tiltLabel
 			// 
@@ -125,10 +128,10 @@
 			chartButton.Margin = new Padding(4, 3, 4, 3);
 			chartButton.Name = "chartButton";
 			chartButton.Size = new Size(98, 27);
-			chartButton.TabIndex = 1;
+			chartButton.TabIndex = 8;
 			chartButton.Text = "Daylight Chart";
 			chartButton.UseVisualStyleBackColor = true;
-			chartButton.Click += chartButton_Click;
+			chartButton.Click += ChartButton_Click;
 			// 
 			// globeButton
 			// 
@@ -136,10 +139,10 @@
 			globeButton.Margin = new Padding(4, 3, 4, 3);
 			globeButton.Name = "globeButton";
 			globeButton.Size = new Size(98, 27);
-			globeButton.TabIndex = 2;
+			globeButton.TabIndex = 9;
 			globeButton.Text = "Globe Map";
 			globeButton.UseVisualStyleBackColor = true;
-			globeButton.Click += globeButton_Click;
+			globeButton.Click += GlobeButton_Click;
 			// 
 			// skyButton
 			// 
@@ -147,10 +150,10 @@
 			skyButton.Margin = new Padding(4, 3, 4, 3);
 			skyButton.Name = "skyButton";
 			skyButton.Size = new Size(98, 27);
-			skyButton.TabIndex = 3;
+			skyButton.TabIndex = 13;
 			skyButton.Text = "Sky Map";
 			skyButton.UseVisualStyleBackColor = true;
-			skyButton.Click += skyButton_Click;
+			skyButton.Click += SkyButton_Click;
 			// 
 			// timeBar
 			// 
@@ -160,7 +163,7 @@
 			timeBar.Name = "timeBar";
 			timeBar.Size = new Size(876, 45);
 			timeBar.TabIndex = 4;
-			timeBar.Scroll += timeBar_Scroll;
+			timeBar.Scroll += TimeBar_Scroll;
 			// 
 			// latitudeLabel
 			// 
@@ -180,9 +183,9 @@
 			latitudeBar.Maximum = 180;
 			latitudeBar.Name = "latitudeBar";
 			latitudeBar.Size = new Size(876, 45);
-			latitudeBar.TabIndex = 6;
+			latitudeBar.TabIndex = 4;
 			latitudeBar.Value = 90;
-			latitudeBar.Scroll += latitudeBar_Scroll;
+			latitudeBar.Scroll += LatitudeBar_Scroll;
 			// 
 			// wrapX
 			// 
@@ -191,10 +194,10 @@
 			wrapX.Margin = new Padding(4, 3, 4, 3);
 			wrapX.Name = "wrapX";
 			wrapX.Size = new Size(122, 27);
-			wrapX.TabIndex = 8;
+			wrapX.TabIndex = 6;
 			wrapX.Text = "Wrap Longitude";
 			wrapX.UseVisualStyleBackColor = true;
-			wrapX.Click += wrapX_Click;
+			wrapX.Click += WrapX_Click;
 			// 
 			// longitudeLabel
 			// 
@@ -214,9 +217,9 @@
 			longitudeBar.Maximum = 360;
 			longitudeBar.Name = "longitudeBar";
 			longitudeBar.Size = new Size(876, 45);
-			longitudeBar.TabIndex = 10;
+			longitudeBar.TabIndex = 7;
 			longitudeBar.Value = 180;
-			longitudeBar.Scroll += longitudeBar_Scroll;
+			longitudeBar.Scroll += LongitudeBar_Scroll;
 			// 
 			// spinsLabel
 			// 
@@ -234,9 +237,9 @@
 			spinsBox.Margin = new Padding(4, 3, 4, 3);
 			spinsBox.Name = "spinsBox";
 			spinsBox.Size = new Size(75, 23);
-			spinsBox.TabIndex = 12;
+			spinsBox.TabIndex = 20;
 			spinsBox.Text = "366";
-			spinsBox.TextChanged += spinsBox_TextChanged;
+			spinsBox.TextChanged += SpinsBox_TextChanged;
 			// 
 			// twilightLabel
 			// 
@@ -254,9 +257,9 @@
 			twilightBox.Margin = new Padding(4, 3, 4, 3);
 			twilightBox.Name = "twilightBox";
 			twilightBox.Size = new Size(75, 23);
-			twilightBox.TabIndex = 14;
+			twilightBox.TabIndex = 24;
 			twilightBox.Text = "5";
-			twilightBox.TextChanged += twilightBox_TextChanged;
+			twilightBox.TextChanged += TwilightBox_TextChanged;
 			// 
 			// timeExport
 			// 
@@ -275,9 +278,9 @@
 			shiftBox.Margin = new Padding(4, 3, 4, 3);
 			shiftBox.Name = "shiftBox";
 			shiftBox.Size = new Size(75, 23);
-			shiftBox.TabIndex = 16;
+			shiftBox.TabIndex = 23;
 			shiftBox.Text = "264";
-			shiftBox.TextChanged += shiftBox_TextChanged;
+			shiftBox.TextChanged += ShiftBox_TextChanged;
 			// 
 			// label2
 			// 
@@ -295,9 +298,9 @@
 			eccentricityBox.Margin = new Padding(4, 3, 4, 3);
 			eccentricityBox.Name = "eccentricityBox";
 			eccentricityBox.Size = new Size(75, 23);
-			eccentricityBox.TabIndex = 18;
+			eccentricityBox.TabIndex = 19;
 			eccentricityBox.Text = "0.0167";
-			eccentricityBox.TextChanged += eccentricityBox_TextChanged;
+			eccentricityBox.TextChanged += EccentricityBox_TextChanged;
 			// 
 			// label3
 			// 
@@ -315,9 +318,9 @@
 			leapYearBox.Margin = new Padding(4, 3, 4, 3);
 			leapYearBox.Name = "leapYearBox";
 			leapYearBox.Size = new Size(75, 23);
-			leapYearBox.TabIndex = 20;
+			leapYearBox.TabIndex = 21;
 			leapYearBox.Text = "4";
-			leapYearBox.TextChanged += leapYearBox_TextChanged;
+			leapYearBox.TextChanged += LeapYearBox_TextChanged;
 			// 
 			// leapYearLabel
 			// 
@@ -336,8 +339,8 @@
 			leapDayBox.Name = "leapDayBox";
 			leapDayBox.Size = new Size(75, 23);
 			leapDayBox.TabIndex = 22;
-			leapDayBox.Text = "59";
-			leapDayBox.TextChanged += leapDayBox_TextChanged;
+			leapDayBox.Text = "60";
+			leapDayBox.TextChanged += LeapDayBox_TextChanged;
 			// 
 			// label4
 			// 
@@ -352,22 +355,22 @@
 			// rewindBox
 			// 
 			rewindBox.AutoSize = true;
-			rewindBox.Location = new Point(825, 12);
+			rewindBox.Location = new Point(88, 18);
 			rewindBox.Name = "rewindBox";
 			rewindBox.Size = new Size(65, 19);
-			rewindBox.TabIndex = 25;
+			rewindBox.TabIndex = 1;
 			rewindBox.Text = "Rewind";
 			rewindBox.UseVisualStyleBackColor = true;
-			rewindBox.CheckedChanged += rewindBox_CheckedChanged;
+			rewindBox.CheckedChanged += RewindBox_CheckedChanged;
 			// 
 			// maxGlobeResBox
 			// 
 			maxGlobeResBox.Location = new Point(150, 367);
 			maxGlobeResBox.Name = "maxGlobeResBox";
 			maxGlobeResBox.Size = new Size(159, 23);
-			maxGlobeResBox.TabIndex = 27;
+			maxGlobeResBox.TabIndex = 11;
 			maxGlobeResBox.Text = "640";
-			maxGlobeResBox.TextChanged += maxGlobeResBox_TextChanged;
+			maxGlobeResBox.TextChanged += MaxGlobeResBox_TextChanged;
 			// 
 			// globeResLabel
 			// 
@@ -386,10 +389,10 @@
 			magneticCompassBox.Location = new Point(14, 471);
 			magneticCompassBox.Name = "magneticCompassBox";
 			magneticCompassBox.Size = new Size(149, 19);
-			magneticCompassBox.TabIndex = 29;
+			magneticCompassBox.TabIndex = 14;
 			magneticCompassBox.Text = "Magnetic Sky Compass";
 			magneticCompassBox.UseVisualStyleBackColor = true;
-			magneticCompassBox.CheckedChanged += magneticCompassBox_CheckedChanged;
+			magneticCompassBox.CheckedChanged += MagneticCompassBox_CheckedChanged;
 			// 
 			// flipSkyNorth
 			// 
@@ -397,10 +400,10 @@
 			flipSkyNorth.Location = new Point(14, 496);
 			flipSkyNorth.Name = "flipSkyNorth";
 			flipSkyNorth.Size = new Size(100, 19);
-			flipSkyNorth.TabIndex = 30;
+			flipSkyNorth.TabIndex = 15;
 			flipSkyNorth.Text = "Flip Sky North";
 			flipSkyNorth.UseVisualStyleBackColor = true;
-			flipSkyNorth.CheckedChanged += flipSkyNorth_CheckedChanged;
+			flipSkyNorth.CheckedChanged += FlipSkyNorth_CheckedChanged;
 			// 
 			// maxSkyResLabel
 			// 
@@ -416,9 +419,9 @@
 			maxSkyResBox.Location = new Point(146, 519);
 			maxSkyResBox.Name = "maxSkyResBox";
 			maxSkyResBox.Size = new Size(100, 23);
-			maxSkyResBox.TabIndex = 31;
+			maxSkyResBox.TabIndex = 16;
 			maxSkyResBox.Text = "640";
-			maxSkyResBox.TextChanged += maxSkyResBox_TextChanged;
+			maxSkyResBox.TextChanged += MaxSkyResBox_TextChanged;
 			// 
 			// maxSkySunsLabel
 			// 
@@ -434,9 +437,9 @@
 			maxSkySunsBox.Location = new Point(146, 548);
 			maxSkySunsBox.Name = "maxSkySunsBox";
 			maxSkySunsBox.Size = new Size(100, 23);
-			maxSkySunsBox.TabIndex = 33;
+			maxSkySunsBox.TabIndex = 17;
 			maxSkySunsBox.Text = "640";
-			maxSkySunsBox.TextChanged += maxSkySunsBox_TextChanged;
+			maxSkySunsBox.TextChanged += MaxSkySunsBox_TextChanged;
 			// 
 			// magLatitudeBox
 			// 
@@ -444,9 +447,9 @@
 			magLatitudeBox.Margin = new Padding(4, 3, 4, 3);
 			magLatitudeBox.Name = "magLatitudeBox";
 			magLatitudeBox.Size = new Size(75, 23);
-			magLatitudeBox.TabIndex = 35;
+			magLatitudeBox.TabIndex = 25;
 			magLatitudeBox.Text = "85.762";
-			magLatitudeBox.TextChanged += magLatitudeBox_TextChanged;
+			magLatitudeBox.TextChanged += MagLatitudeBox_TextChanged;
 			// 
 			// magLongitudeBox
 			// 
@@ -454,9 +457,9 @@
 			magLongitudeBox.Margin = new Padding(4, 3, 4, 3);
 			magLongitudeBox.Name = "magLongitudeBox";
 			magLongitudeBox.Size = new Size(75, 23);
-			magLongitudeBox.TabIndex = 36;
+			magLongitudeBox.TabIndex = 26;
 			magLongitudeBox.Text = "139.298";
-			magLongitudeBox.TextChanged += magLongitudeBox_TextChanged;
+			magLongitudeBox.TextChanged += MagLongitudeBox_TextChanged;
 			// 
 			// zRadiusBox
 			// 
@@ -464,9 +467,9 @@
 			zRadiusBox.Margin = new Padding(4, 3, 4, 3);
 			zRadiusBox.Name = "zRadiusBox";
 			zRadiusBox.Size = new Size(75, 23);
-			zRadiusBox.TabIndex = 38;
+			zRadiusBox.TabIndex = 28;
 			zRadiusBox.Text = "6356.7523";
-			zRadiusBox.TextChanged += zRadiusBox_TextChanged;
+			zRadiusBox.TextChanged += ZRadiusBox_TextChanged;
 			// 
 			// xRadiusBox
 			// 
@@ -474,9 +477,9 @@
 			xRadiusBox.Margin = new Padding(4, 3, 4, 3);
 			xRadiusBox.Name = "xRadiusBox";
 			xRadiusBox.Size = new Size(75, 23);
-			xRadiusBox.TabIndex = 37;
+			xRadiusBox.TabIndex = 27;
 			xRadiusBox.Text = "6378.137";
-			xRadiusBox.TextChanged += xRadiusBox_TextChanged;
+			xRadiusBox.TextChanged += XRadiusBox_TextChanged;
 			// 
 			// skyFovBox
 			// 
@@ -484,9 +487,9 @@
 			skyFovBox.Margin = new Padding(4, 3, 4, 3);
 			skyFovBox.Name = "skyFovBox";
 			skyFovBox.Size = new Size(75, 23);
-			skyFovBox.TabIndex = 39;
+			skyFovBox.TabIndex = 29;
 			skyFovBox.Text = "181.21";
-			skyFovBox.TextChanged += skyFovBox_TextChanged;
+			skyFovBox.TextChanged += SkyFovBox_TextChanged;
 			// 
 			// magLatitudeLabel
 			// 
@@ -543,18 +546,18 @@
 			latitudeBox.Location = new Point(131, 100);
 			latitudeBox.Name = "latitudeBox";
 			latitudeBox.Size = new Size(100, 23);
-			latitudeBox.TabIndex = 45;
+			latitudeBox.TabIndex = 3;
 			latitudeBox.Text = "0";
-			latitudeBox.TextChanged += latitudeBox_TextChanged;
+			latitudeBox.TextChanged += LatitudeBox_TextChanged;
 			// 
 			// longitudeBox
 			// 
 			longitudeBox.Location = new Point(131, 192);
 			longitudeBox.Name = "longitudeBox";
 			longitudeBox.Size = new Size(100, 23);
-			longitudeBox.TabIndex = 46;
+			longitudeBox.TabIndex = 5;
 			longitudeBox.Text = "0";
-			longitudeBox.TextChanged += longitudeBox_TextChanged;
+			longitudeBox.TextChanged += LongitudeBox_TextChanged;
 			// 
 			// smearLabel
 			// 
@@ -573,9 +576,9 @@
 			smearBar.Maximum = 5;
 			smearBar.Name = "smearBar";
 			smearBar.Size = new Size(159, 45);
-			smearBar.TabIndex = 48;
-			smearBar.Value = 5;
-			smearBar.Scroll += smearBar_Scroll;
+			smearBar.TabIndex = 12;
+			smearBar.Value = 4;
+			smearBar.Scroll += SmearBar_Scroll;
 			// 
 			// globeDetailLabel
 			// 
@@ -593,8 +596,8 @@
 			globeDetailBox.Location = new Point(150, 338);
 			globeDetailBox.Name = "globeDetailBox";
 			globeDetailBox.Size = new Size(159, 23);
-			globeDetailBox.TabIndex = 50;
-			globeDetailBox.SelectedIndexChanged += globeDetailBox_SelectedIndexChanged;
+			globeDetailBox.TabIndex = 10;
+			globeDetailBox.SelectedIndexChanged += GlobeDetailBox_SelectedIndexChanged;
 			// 
 			// auBox
 			// 
@@ -602,9 +605,9 @@
 			auBox.Margin = new Padding(4, 3, 4, 3);
 			auBox.Name = "auBox";
 			auBox.Size = new Size(75, 23);
-			auBox.TabIndex = 51;
+			auBox.TabIndex = 30;
 			auBox.Text = "149597870";
-			auBox.TextChanged += auBox_TextChanged;
+			auBox.TextChanged += AuBox_TextChanged;
 			// 
 			// label5
 			// 
@@ -616,11 +619,44 @@
 			label5.TabIndex = 52;
 			label5.Text = "Average distance to the Sun:";
 			// 
+			// dateLabel
+			// 
+			dateLabel.AutoSize = true;
+			dateLabel.Location = new Point(502, 14);
+			dateLabel.Name = "dateLabel";
+			dateLabel.Size = new Size(65, 15);
+			dateLabel.TabIndex = 53;
+			dateLabel.Text = "Date-Time:";
+			// 
+			// timePicker
+			// 
+			timePicker.Format = DateTimePickerFormat.Time;
+			timePicker.Location = new Point(786, 8);
+			timePicker.MinDate = new DateTime(2000, 1, 1, 0, 0, 0, 0);
+			timePicker.Name = "timePicker";
+			timePicker.ShowUpDown = true;
+			timePicker.Size = new Size(104, 23);
+			timePicker.TabIndex = 2;
+			timePicker.ValueChanged += TimePicker_ValueChanged;
+			// 
+			// datePicker
+			// 
+			datePicker.CustomFormat = "MM/dd/yyyy hh:mm tt";
+			datePicker.Location = new Point(573, 8);
+			datePicker.MinDate = new DateTime(2000, 1, 1, 0, 0, 0, 0);
+			datePicker.Name = "datePicker";
+			datePicker.Size = new Size(207, 23);
+			datePicker.TabIndex = 54;
+			datePicker.ValueChanged += DatePicker_ValueChanged;
+			// 
 			// Simulator
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
 			ClientSize = new Size(912, 689);
+			Controls.Add(datePicker);
+			Controls.Add(timePicker);
+			Controls.Add(dateLabel);
 			Controls.Add(label5);
 			Controls.Add(auBox);
 			Controls.Add(globeDetailBox);
@@ -742,6 +778,9 @@
 		private ComboBox globeDetailBox;
 		private TextBox auBox;
 		private Label label5;
+		private Label dateLabel;
+		private DateTimePicker timePicker;
+		private DateTimePicker datePicker;
 	}
 }
 

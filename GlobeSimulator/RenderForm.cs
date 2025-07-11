@@ -3,6 +3,12 @@ using System.Numerics;
 
 namespace GlobeSimulator {
 	public partial class RenderForm : Form {
+		public enum RefreshType : byte {
+			DontRefresh = 0,
+			RefreshTime = 1,
+			RefreshSettings = 2,
+			RefreshReset = 3
+		}
 		public required Simulator 
 			MyParent;			// pointer to the parent Simulation window
 		public required int
@@ -29,23 +35,22 @@ namespace GlobeSimulator {
 		private readonly object	
 			taskLock = new();   // Monitor lock
 		private CancellationTokenSource?
-		cancel;                 // Cancellation Token Source
+			cancel;             // Cancellation Token Source
 		protected CancellationToken
 			token;              // Cancellation token
-		internal byte Render;	// 0 = up to date, 1 = try refresh time, 2 = force refresh settings/init
+		private CancellationTokenSource?
+			cancelRefresh;             // Cancellation Token Source
+		private CancellationToken
+			tokenRefresh;              // Cancellation token
+		internal RefreshType RefreshFlag;
 
-		public RenderForm() => InitializeComponent();
-		private void RenderForm_Load(object sender, EventArgs e) {
-		}
-		private void RenderForm_FormClosed(object sender, FormClosedEventArgs e) {
-			//MyParent.globe = null;
-		}
-		private void RenderForm_SizeChanged(object sender, EventArgs e) {
-			Reset();
-		}
-		private void screen_Paint(object sender, PaintEventArgs e) {
+		public RenderForm()
+			=> InitializeComponent();
+		private void RenderForm_Load(object sender, EventArgs e) { }
+		private void RenderForm_SizeChanged(object sender, EventArgs e)
+			=> Reset();
+		private void Screen_Paint(object sender, PaintEventArgs e) {
 			lock (taskLock) {
-				//try {
 				if (screen.Image == null)
 					return;
 				var g = e.Graphics;
@@ -58,22 +63,22 @@ namespace GlobeSimulator {
 				new Rectangle(0, 0, screen.Image.Width, screen.Image.Height),
 					GraphicsUnit.Pixel
 				);
-				//} catch (Exception ex) {
-				//	Console.WriteLine(ex.ToString());
-				//}
 			}
+		}
+		internal void CancelRenderSleep(RefreshType NewRefreshFlag) {
+			RefreshFlag = NewRefreshFlag;
+			cancelRefresh?.Cancel();
 		}
 		internal void Reset() {
 			if (MyParent == null)
 				return;
-			//try {
-
 			// cancel the image binding:
 			lock (taskLock) {
 				screen.Image = null;
 			}
 			// stop the previous drawing thread:
 			cancel?.Cancel();
+			cancelRefresh?.Cancel();
 			task?.Wait();
 			// handle resolution constraints:
 			int w = bmpW = Math.Max(1, ClientSize.Width - screenW - screenX),
@@ -103,20 +108,17 @@ namespace GlobeSimulator {
 			Function_Reset();
 			// start the new drawing thread:
 			task = Task.Run(Task_Reset, token = (cancel = new()).Token);
-			//} catch (Exception ex) {
-			//	Console.WriteLine(ex.ToString());
-			//}
 		}
 		internal void DrawBackground() {
 			lock (taskLock) {
 				screen.Image = null;
 			}
 			cancel?.Cancel();
+			cancelRefresh?.Cancel();
 			task?.Wait();
 			task = Task.Run(Task_DrawBackground, token = (cancel = new()).Token);
 		}
 		internal void Task_Reset() {
-			//try {
 			// resize the double buffered bitmaps
 			lock (taskLock) {
 				if (bmpFront == null || bmpW != bmpFront.Width || bmpH != bmpFront.Height) {
@@ -138,13 +140,9 @@ namespace GlobeSimulator {
 					pixels[i] = new byte[bmpW];
 			}
 			Task_DrawBackground();
-			//} catch (Exception ex) {
-			//	Console.WriteLine(ex.ToString());
-			//}
 		}
 		// (Re)Draws Chart, call on Load or parameter change
-		internal void Task_DrawBackground() {
-			//try {
+		internal async void Task_DrawBackground() {
 			var po = new ParallelOptions {
 				MaxDegreeOfParallelism = MyParent.GetMaxTasks(),
 				CancellationToken = token
@@ -154,28 +152,29 @@ namespace GlobeSimulator {
 			} catch {
 				return;
 			}
-			prevTime = MyParent.Time;
-			Render = 2;
+			RefreshFlag = RefreshType.RefreshReset;
 			while (true) {
+				tokenRefresh = (cancelRefresh = new()).Token;
 				if (token.IsCancellationRequested) {
 					return;
 				}
 				// sample the time, update the map if the time is different and frame is requested, or it a refresh is requested
 				currentTime = MyParent.Time;
-				if (Render > 1 || currentTime != prevTime && Render > 0) {
-					Render = 0;
+				if (RefreshFlag >= RefreshType.RefreshSettings || currentTime != prevTime && RefreshFlag > RefreshType.DontRefresh) {
+					if(RefreshFlag == RefreshType.RefreshReset)
+						prevTime = currentTime;
+					RefreshFlag = RefreshType.DontRefresh; // just refreshed, so reset the flag to not refresh again until 
 					Task_DrawBitmap();
 					prevTime = currentTime;
 				}
-
+				try {
+					
+					await Task.Delay(TimeSpan.FromSeconds(1), tokenRefresh);
+				} catch (TaskCanceledException) { }
 			}
-			//} catch (Exception ex) {
-			//	Console.WriteLine(ex.ToString());
-			//}
 		}
 		// Draws Bitmap, call on Load or Time increment
 		internal void Task_DrawBitmap() {
-			//try {
 			// lock the bitmap:
 			var locked = bmpBack!.LockBits(
 				new Rectangle(0, 0, bmpBack.Width, bmpBack.Height),
@@ -211,17 +210,10 @@ namespace GlobeSimulator {
 			} else {
 				screen.Image = image;
 			}*/
-			//}
-			//} catch (Exception ex) {
-			//	Console.WriteLine(ex.ToString());
-			//}
 		}
-		protected virtual void Function_Reset() {
-		}
-		protected virtual void Function_DrawBackground(ParallelOptions po) {
-		}
-		protected unsafe virtual void Function_DrawBitmap(ParallelOptions po, BitmapData locked, byte* bmpPtr) {
-		}
+		protected virtual void Function_Reset() { }
+		protected virtual void Function_DrawBackground(ParallelOptions po) { }
+		protected unsafe virtual void Function_DrawBitmap(ParallelOptions po, BitmapData locked, byte* bmpPtr) { }
 		protected Vector3 GetObserver(double t, float yearRadCos, float yearRadSin, Vector3 OnLatitude, float Longitude) {
 			// How many times does the globe spin per orbit?
 			var s = MyParent.LeapYears > 0 ? MyParent.Spins + 1.0 / MyParent.LeapYears : MyParent.Spins;
@@ -238,11 +230,8 @@ namespace GlobeSimulator {
 				y_time * MyParent.TiltSin + OnLatitude.Z * MyParent.TiltCos
 			);
 		}
-		protected Vector3 GetObserver(double t, double yearRad, Vector3 OnLatitude, float Longitude) {
-			// Rotate by Orbit:
-			return GetObserver(t, (float)Math.Cos(yearRad), (float)Math.Sin(yearRad), OnLatitude, Longitude);
-		}
-		//protected Vector3 GetObserverOnLattitude() => GetObserverOnLattitude(MyParent.Latitude);
+		protected Vector3 GetObserver(double t, double yearRad, Vector3 OnLatitude, float Longitude) 
+			=> GetObserver(t, (float)Math.Cos(yearRad), (float)Math.Sin(yearRad), OnLatitude, Longitude);
 		protected static Vector3 GetObserverOnLattitude(float Latitude) {
 			float latitudeRad = (.5f - Latitude / 180.0f) * MathF.PI;
 			return new(MathF.Sin(latitudeRad), 0, MathF.Cos(latitudeRad));

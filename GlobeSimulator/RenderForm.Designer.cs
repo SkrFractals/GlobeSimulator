@@ -33,7 +33,7 @@
 			screen.Name = "screen";
 			screen.Size = new Size(100, 100);
 			screen.SizeMode = PictureBoxSizeMode.StretchImage;
-			screen.Paint += screen_Paint;
+			screen.Paint += Screen_Paint;
 			screen.TabIndex = 1;
 			screen.TabStop = false;
 			// 
@@ -43,7 +43,6 @@
 			Controls.Add(screen);
 			Name = "RenderForm";
 			Text = "Globe Simulator - Render Form";
-			FormClosed += RenderForm_FormClosed;
 			Load += RenderForm_Load;
 			SizeChanged += RenderForm_SizeChanged;
 			((System.ComponentModel.ISupportInitialize)screen).EndInit();

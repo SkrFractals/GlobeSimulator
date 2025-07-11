@@ -127,7 +127,7 @@ namespace GlobeSimulator {
 								int ilat = (int)lat, samples = 0;
 								var RGB = Vector3.Zero;
 								// Sample UV from an Earth map
-								var DT = mapScale * MathF.Pow(.5f, 5.0f - TextureSmearLevel);
+								var DT = mapScale * MathF.Pow(.5f, TextureSmearLevel - 5);
 								for (var i = 0.0f; i <= timeS; i += DT) {
 									var tex = MyParent.MapEarth[(int)((lon + i) % (360 * mapScale)), ilat];
 									RGB += tex;

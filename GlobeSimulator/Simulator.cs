@@ -26,7 +26,7 @@ namespace GlobeSimulator {
 				Spins = 366;
 				Equinox = 264;
 				LeapYears = 4;
-				LeapDay = 59;
+				LeapDay = 60;
 				Eccentricity = 0.0167f;
 				SkyAngle = 181.21f;
 				MagneticLatitude = 85.762f;
@@ -66,6 +66,7 @@ namespace GlobeSimulator {
 		// Variables:
 		internal double Time = 0;
 		private readonly Stopwatch stopwatch;
+		private bool lockDateTime; 
 
 		// Precomputed variables:
 		internal double EquinoxShift; // When is Fall Equinox in my time format?
@@ -109,6 +110,7 @@ namespace GlobeSimulator {
 
 		#region Events
 		public Simulator() {
+			lockDateTime = true;
 			Earth = new();
 			R = new float[1025];
 			Nu = new float[1025];
@@ -132,12 +134,15 @@ namespace GlobeSimulator {
 			}
 			// unlock the bitmap
 			map.UnlockBits(locked);
-
+			// initialize the form
 			InitializeComponent();
 		}
 		private void Simulator_Load(object sender, EventArgs e) {
 			maxGenerationTasks = Environment.ProcessorCount - 1;
 			globeDetailBox.SelectedIndex = 2;
+
+			// Set the minimum datetime to the start of the simulation (January 1 2000)
+			timePicker.MinDate = new DateTime(2000, 1, 1);
 
 			// Read the default settings:
 			SetLatitude();
@@ -158,14 +163,19 @@ namespace GlobeSimulator {
 			_ = SetZRadius();
 			_ = SetMagneticLatitude();
 			_ = SetMagneticLongitude();
-			UpdateTime();
-
 			for (int i = 0; i < 1024; ++i)
 				R[i] = Radius(Nu[i] = TrueAnomaly(SolveEccentricAnomaly(TWO_PI * i / 1024.0f)));
 			Nu[1024] = 1.0f; R[1024] = R[0];
+
+			// Use simulation start time instead of today time
+			//timePicker.Value = new(2000, 1, 1, 0, 0, 0);
+			//datePicker.Value = new(2000, 1, 1, 0, 0, 0);
+
+			SetDateTime();
 			RefreshAll();
+			UpdateTime();
 		}
-		private void tick_Tick(object sender, EventArgs e) {
+		private void Tick_Tick(object sender, EventArgs e) {
 			var elapsed = stopwatch.Elapsed.TotalSeconds;
 			stopwatch.Restart();
 			if (TimeSpeed <= 0)
@@ -181,16 +191,16 @@ namespace GlobeSimulator {
 		#endregion
 
 		#region Renders
-		private void chartButton_Click(object sender, EventArgs e)
+		private void ChartButton_Click(object sender, EventArgs e)
 			=> OpenRenderForm(ref chart, () => new() { MyParent = this, maxResolution = 0 }, Chart_FormClosed);
-		private void globeButton_Click(object sender, EventArgs e)
+		private void GlobeButton_Click(object sender, EventArgs e)
 			=> OpenRenderForm(ref globe, () => new() {
 				MyParent = this,
 				maxResolution = MaxGlobeRes,
 				TextureSmearLevel = smearBar.Value,
 				detail = (Globe.Detail)globeDetailBox.SelectedIndex
 			}, Globe_FormClosed);
-		private void skyButton_Click(object sender, EventArgs e)
+		private void SkyButton_Click(object sender, EventArgs e)
 			=> OpenRenderForm(ref sky, () => new() {
 				MyParent = this,
 				maxResolution = MaxSkyRes,
@@ -204,7 +214,7 @@ namespace GlobeSimulator {
 			=> globe = null;
 		private void Sky_FormClosed(object? sender, FormClosedEventArgs e)
 			=> sky = null;
-		private void OpenRenderForm<T>(ref T? formField, Func<T?> creator, FormClosedEventHandler closedHandler)
+		private static void OpenRenderForm<T>(ref T? formField, Func<T?> creator, FormClosedEventHandler closedHandler)
 			where T : RenderForm {
 			formField ??= creator();
 			if (formField == null)
@@ -216,14 +226,72 @@ namespace GlobeSimulator {
 		#endregion
 
 		#region SettingsSimulation
-		private void rewindBox_CheckedChanged(object sender, EventArgs e) {
-			Rewind = rewindBox.Checked;
+		private void DatePicker_ValueChanged(object sender, EventArgs e) {
+			if (lockDateTime) {
+				return;
+			}
+			SetDateTime();
+			RefreshAll(true);
+			UpdateTime();
 		}
-		private void timeBar_Scroll(object sender, EventArgs e) {
+		private void TimePicker_ValueChanged(object sender, EventArgs e) {
+			if (lockDateTime) {
+				return;
+			}
+			SetDateTime();
+			RefreshAll(true);
+			UpdateTime();
+		}
+		private void SetDateTime() {
+			var Year = datePicker.Value.Year;
+			var Month = datePicker.Value.Month - 1;
+			var Day = datePicker.Value.Day - 1;
+			var DTime = timePicker.Value.TimeOfDay.TotalSeconds;
+			Year -= 2000;
+			if (Tilt == Earth.Tilt
+				&& Spins == Earth.Spins
+				&& Equinox == Earth.Equinox
+				&& LeapYears == Earth.LeapYears
+				&& LeapDay == Earth.LeapDay
+			) {
+				// Add the remaining Years after 2000, accounting for different sized because of Leap Yeears:
+				var Leaps = (Year / LeapYears) * 4;
+				double NewTime = Leaps; // add quadruples of years (every 4 years is exactly 4 in my Time format)
+				Year -= Leaps; // subtract those used quadruples of years from the picked date time
+				// Take a calendar with a leap year
+				int[] LeapCalendar = new int[12];
+				Calendar.CopyTo(LeapCalendar, 0);
+				// set february to 28 days if the year is not leap
+				if (Year % 4 > 0)
+					LeapCalendar[1] = 28;
+				// add remaining single years to my time.
+				// accounting for leap years being slightly larger than 1, and non leap year slightly smaller
+				if (Year > 0) {
+					// First remaining year is a leap year:
+					NewTime += OneDay * Spins;
+					--Year;
+					// The following 1-3 years are not:
+					while (Year > 0) {
+						NewTime += OneDay * (Spins - 1);
+						--Year;
+					}
+				}
+				// Add Months and days and Time to my time:
+				while (Month > 0) {
+					NewTime += OneDay * LeapCalendar[--Month];
+				}
+				Time = NewTime + OneDay * Day + DTime * OneSecond;
+			} else {
+				_ = MessageBox.Show("Settings do not match Earth!", "Cannot set date-time!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
+		private void RewindBox_CheckedChanged(object sender, EventArgs e) 
+			=> Rewind = rewindBox.Checked;
+		private void TimeBar_Scroll(object sender, EventArgs e) {
 			TimeSpeed = timeBar.Value == 0 ? 0.0 : OneSecond * Math.Exp((timeBar.Value - 1) * .05);
 			UpdateTime();
 		}
-		private void latitudeBox_TextChanged(object sender, EventArgs e) {
+		private void LatitudeBox_TextChanged(object sender, EventArgs e) {
 			if (float.TryParse(latitudeBox.Text, out float New)) {
 				Latitude = New;
 				if (Latitude < -90) {
@@ -238,7 +306,7 @@ namespace GlobeSimulator {
 				RefreshAll();
 			}
 		}
-		private void longitudeBox_TextChanged(object sender, EventArgs e) {
+		private void LongitudeBox_TextChanged(object sender, EventArgs e) {
 			if (float.TryParse(longitudeBox.Text, out float New)) {
 				Longitude = New;
 				if (Latitude < -180) {
@@ -253,7 +321,7 @@ namespace GlobeSimulator {
 				RedrawAll();
 			}
 		}
-		private void latitudeBar_Scroll(object sender, EventArgs e) {
+		private void LatitudeBar_Scroll(object sender, EventArgs e) {
 			SetLatitude();
 			latitudeBox.Text = Latitude.ToString();
 			//RefreshAll(); // it gets done in TextChanged
@@ -266,11 +334,11 @@ namespace GlobeSimulator {
 			float latitudeRad = (.5f - Latitude / 180.0f) * MathF.PI;
 			ObserverLatitudeVector = new(MathF.Sin(latitudeRad) * EquatorShrink, 0, MathF.Cos(latitudeRad) * PolarShrink);
 		}
-		private void wrapX_Click(object sender, EventArgs e) {
+		private void WrapX_Click(object sender, EventArgs e) {
 			longitudeBar.Value = longitudeBar.Value == 360 ? 0 : 360;
 			SetLongitude();
 		}
-		private void longitudeBar_Scroll(object sender, EventArgs e) {
+		private void LongitudeBar_Scroll(object sender, EventArgs e) {
 			SetLongitude();
 			longitudeBox.Text = Longitude.ToString();
 			//RedrawAll(); // it gets done in TextChanged
@@ -279,7 +347,7 @@ namespace GlobeSimulator {
 			Longitude = longitudeBar.Value - 180;
 			wrapX.Enabled = longitudeBar.Value % 360 == 0;
 		}
-		private void tiltBox_TextChanged(object? sender, EventArgs? e) {
+		private void TiltBox_TextChanged(object? sender, EventArgs? e) {
 			if (SetTilt()) {
 				RedrawAll();
 			}
@@ -294,7 +362,7 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void eccentricityBox_TextChanged(object sender, EventArgs e) {
+		private void EccentricityBox_TextChanged(object sender, EventArgs e) {
 			if (SetEccentricity()) {
 				RedrawAll();
 			}
@@ -306,7 +374,7 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void spinsBox_TextChanged(object sender, EventArgs e) {
+		private void SpinsBox_TextChanged(object sender, EventArgs e) {
 			if (SetSpins()) {
 				UpdateLeapYear();
 				UpdateLeapDay();
@@ -320,7 +388,7 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void leapYearBox_TextChanged(object sender, EventArgs e) {
+		private void LeapYearBox_TextChanged(object sender, EventArgs e) {
 			if (SetLeapYear()) {
 				RedrawAll();
 			}
@@ -342,7 +410,7 @@ namespace GlobeSimulator {
 			OneDay = LeapYears > 0 ? 1.0 / (Spins - 1.0 + 1.0 / LeapYears) : 1.0 / (Spins - 1.0);
 			OneSecond = OneDay / (24 * 60 * 60);
 		}
-		private void leapDayBox_TextChanged(object sender, EventArgs e) {
+		private void LeapDayBox_TextChanged(object sender, EventArgs e) {
 			if (SetLeapDay()) {
 				RedrawAll();
 			}
@@ -356,9 +424,9 @@ namespace GlobeSimulator {
 			return false;
 		}
 		private void UpdateLeapDay() {
-			LeapDayShift = Spins != 1 ? (float)LeapDay / (Spins - 1) : 0.0f;
+			LeapDayShift = Spins != 1 ? (LeapDay - 1) * OneDay : 0.0f;
 		}
-		private void shiftBox_TextChanged(object sender, EventArgs e) {
+		private void ShiftBox_TextChanged(object sender, EventArgs e) {
 			if (SetYearShift()) {
 				RedrawAll();
 			}
@@ -371,7 +439,7 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void twilightBox_TextChanged(object sender, EventArgs e) {
+		private void TwilightBox_TextChanged(object sender, EventArgs e) {
 			if (SetTwilight()) {
 				RefreshAll();
 			}
@@ -383,13 +451,13 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void magLatitudeBox_TextChanged(object sender, EventArgs e) {
+		private void MagLatitudeBox_TextChanged(object sender, EventArgs e) {
 			if (SetMagneticLatitude()) {
 				RefreshExceptChart();
 			}
 		}
 
-		private void magLongitudeBox_TextChanged(object sender, EventArgs e) {
+		private void MagLongitudeBox_TextChanged(object sender, EventArgs e) {
 			if (SetMagneticLongitude()) {
 				RefreshExceptChart();
 			}
@@ -413,7 +481,7 @@ namespace GlobeSimulator {
 			float latitudeRad = (.5f - MagneticLatitude / 180.0f) * MathF.PI;
 			MagneticLatitudeVector = new(MathF.Sin(latitudeRad) * EquatorShrink, 0, MathF.Cos(latitudeRad) * PolarShrink);
 		}
-		private void xRadiusBox_TextChanged(object sender, EventArgs e) {
+		private void XRadiusBox_TextChanged(object sender, EventArgs e) {
 			if (SetXRadius()) {
 				RefreshExceptChart();
 			}
@@ -428,7 +496,7 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void zRadiusBox_TextChanged(object sender, EventArgs e) {
+		private void ZRadiusBox_TextChanged(object sender, EventArgs e) {
 			if (SetZRadius()) {
 				RefreshExceptChart();
 			}
@@ -447,9 +515,9 @@ namespace GlobeSimulator {
 			PolarShrink = MathF.Min(1.0f, PolarRadius / EquatorialRadius);
 			EquatorShrink = MathF.Min(1.0f, EquatorialRadius / PolarRadius);
 		}
-		private void skyFovBox_TextChanged(object sender, EventArgs e) {
+		private void SkyFovBox_TextChanged(object sender, EventArgs e) {
 			if (SetSkyAngle() && sky != null) {
-				sky.Render = 2;
+				sky.CancelRenderSleep(RenderForm.RefreshType.RefreshSettings);
 			}
 		}
 		private bool SetSkyAngle() {
@@ -459,9 +527,9 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void auBox_TextChanged(object sender, EventArgs e) {
+		private void AuBox_TextChanged(object sender, EventArgs e) {
 			if (SetAu() && sky != null) {
-				sky.Render = 2;
+				sky.CancelRenderSleep(RenderForm.RefreshType.RefreshSettings);
 			}
 		}
 		private bool SetAu() {
@@ -474,13 +542,13 @@ namespace GlobeSimulator {
 		#endregion
 
 		#region SettingsRenders
-		private void maxGlobeResBox_TextChanged(object sender, EventArgs e) {
+		private void MaxGlobeResBox_TextChanged(object sender, EventArgs e) {
 			if (SetGlobeRes() && globe != null) {
 				globe.maxResolution = MaxGlobeRes;
 				globe.Reset();
 			}
 		}
-		private void globeDetailBox_SelectedIndexChanged(object sender, EventArgs e) {
+		private void GlobeDetailBox_SelectedIndexChanged(object sender, EventArgs e) {
 			if (globe != null) {
 				globe.detail = (Globe.Detail)globeDetailBox.SelectedIndex;
 				globe.DrawBackground();
@@ -493,25 +561,25 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void smearBar_Scroll(object sender, EventArgs e) {
+		private void SmearBar_Scroll(object sender, EventArgs e) {
 			if (globe != null) {
 				globe.TextureSmearLevel = smearBar.Value;
 			}
 		}
-		private void magneticCompassBox_CheckedChanged(object sender, EventArgs e) {
+		private void MagneticCompassBox_CheckedChanged(object sender, EventArgs e) {
 			if (sky != null) {
 				sky.Magnetic = magneticCompassBox.Checked;
-				sky.Render = 2;
+				sky.CancelRenderSleep(RenderForm.RefreshType.RefreshSettings);
 			}
 		}
-		private void flipSkyNorth_CheckedChanged(object sender, EventArgs e) {
+		private void FlipSkyNorth_CheckedChanged(object sender, EventArgs e) {
 			if (sky != null) {
 				sky.Flip = flipSkyNorth.Checked;
 				sky.LabelNorth();
-				sky.Render = 2;
+				sky.CancelRenderSleep(RenderForm.RefreshType.RefreshSettings);
 			}
 		}
-		private void maxSkyResBox_TextChanged(object sender, EventArgs e) {
+		private void MaxSkyResBox_TextChanged(object sender, EventArgs e) {
 			if (SetSkyRes() && sky != null) {
 				sky.maxResolution = MaxGlobeRes;
 				sky.Reset();
@@ -524,7 +592,7 @@ namespace GlobeSimulator {
 			}
 			return false;
 		}
-		private void maxSkySunsBox_TextChanged(object sender, EventArgs e) {
+		private void MaxSkySunsBox_TextChanged(object sender, EventArgs e) {
 			if (SetSkySuns() && sky != null) {
 				sky.MaxSuns = Math.Max(1, MaxSkySuns);
 				sky.Reset();
@@ -541,7 +609,6 @@ namespace GlobeSimulator {
 
 		#region Functions
 		private void UpdateTime() {
-
 			// Earth's Date and Time only makes sense if these parameters match Earth's:
 			if (Tilt == Earth.Tilt
 				&& Spins == Earth.Spins
@@ -553,25 +620,11 @@ namespace GlobeSimulator {
 				var DayTime = Skipleaps(Time);
 				int Add = (int)(DayTime / LeapYearMultiplier);
 				Year += Add;
-				DayTime -= Add;
+				DayTime -= Add * LeapYearMultiplier;
 				// Count the days and months:
 				int Month = 0, Day = (int)(DayTime / OneDay);
-
-
 				foreach (int i in Calendar) {
-					if (Day > i) {
-						++Month;
-						Day -= i;
-					} else break;
-				}
-				DayTime = Skipleaps(Time);
-				Add = (int)(DayTime / LeapYearMultiplier);
-				DayTime -= Add * LeapYearMultiplier;
-				Month = 0; Day = (int)(DayTime / OneDay);
-
-
-				foreach (int i in Calendar) {
-					if (Day > i) {
+					if (Day >= i) {
 						++Month;
 						Day -= i;
 					} else break;
@@ -579,45 +632,56 @@ namespace GlobeSimulator {
 				// Convert to total minutes and seconds, format as HH:mm:ss
 				string DayExp, TimeExp = "██:██:██";
 				var DT = TimeSpeed * tick.Interval / (1000 * OneDay);
+				++Day; // count days from 1
+				DayTime %= OneDay;
+				DayTime /= OneDay;
+				DayTime *= 24 * 60;
+				int Minutes = (int)DayTime;
+				int Hours = Minutes / 60;
+				Minutes %= 60;
+				int Seconds = (int)(DayTime * 60 % 60);
+
 				if (DT >= 10.0f) {
 					DayExp = "██";
 				} else {
-					++Day; // count days from 1
 					if (DT >= 5.0f) {
 						DayExp = (Day / 10) + "█";
 					} else if (DT >= 10.0f / 24) {
 						DayExp = Day.ToString();
 					} else {
 						DayExp = Day.ToString();
-						DayTime %= OneDay;
-						DayTime /= OneDay;
-						DayTime *= 24 * 60;
-						int totalMinutes = (int)DayTime;
 						if (DT >= 5.0f / 24) {
-							TimeExp = (totalMinutes / 600) + "█:██:██";
+							TimeExp = (Hours / 10) + "█:██:██";
 						} else {
-							TimeExp = $"{totalMinutes / 60:D2}:";
+							TimeExp = $"{Hours:D2}:";
 							if (DT >= 20.0f / (24 * 60)) {
 								TimeExp += "██:██";
 							} else if (DT >= 5.0f / (24 * 60)) {
-								TimeExp += (totalMinutes % 60 / 10) + "█:██";
+								TimeExp += (Minutes / 10) + "█:██";
 							} else {
-								TimeExp += $"{totalMinutes % 60:D2}:";
+								TimeExp += $"{Minutes:D2}:";
 								if (DT >= 20.0f / (24 * 60 * 60)) {
 									TimeExp += "██";
 								} else if (DT >= 5.0f / (24 * 60 * 60)) {
-									TimeExp += (int)(DayTime * 6 % 6) + "█";
+									TimeExp += (Seconds / 10) + "█";
 								} else {
-									TimeExp += $"{(int)(DayTime * 60 % 60):D2}";
+									TimeExp += $"{Seconds:D2}";
 								}
 							}
 						}
 					}
 				}
 				timeExport.Text = TimeExp + "\n" + CalendarMonthNames[Month] + " " + DayExp + "\n" + Year + "\nTime Speed = " + string.Format("{0:F1}", Math.Round(TimeSpeed * 10 / OneSecond) / 10) + "x";
+
+				lockDateTime = true;
+				timePicker.Value = new(2000, 1, 1, Hours, Minutes, Seconds);
+				datePicker.Value = new(Year, Month + 1, Day, 0, 0, 0);
+				datePicker.Enabled = timePicker.Enabled = true;
+				lockDateTime = false;
 				return;
 			}
 			// Fallback to a non-calendar planet date time export:
+			lockDateTime = datePicker.Enabled = timePicker.Enabled = false;
 			timeExport.Text =
 				"Settings do not match Earth! Year: " + (int)(Time % 1 * 100)
 				+ "%, Day: " + (int)(Time % OneDay * 100) + "%";
@@ -629,14 +693,6 @@ namespace GlobeSimulator {
 			// Remove the multiples of Leap Year Periods (4-years for Earth)
 			Input -= Add;
 			// Remove every next single full years, while skipping the Leap Days on the Leap Years:
-			/*while (Input >= LeapYearMultiplier) {
-				Input -= LeapYearMultiplier;
-				++Add;
-				if (Input >= LeapDayShift) {
-					Input += OneDay;
-				}
-			}*/
-
 			if (Input >= LeapYearMultiplier) {
 				Input -= LeapYearMultiplier;
 				++Add;
@@ -661,16 +717,14 @@ namespace GlobeSimulator {
 			chart?.DrawBackground();
 			RefreshExceptChart();
 		}
-		private void RefreshAll() {
-			RefreshExceptChart();
-			if (chart != null)
-				chart.Render = 2;
+		private void RefreshAll(bool noSmear = false) {
+			var NewRefreshFlag = noSmear ? RenderForm.RefreshType.RefreshReset : RenderForm.RefreshType.RefreshSettings;
+			RefreshExceptChart(NewRefreshFlag);
+			chart?.CancelRenderSleep(NewRefreshFlag);
 		}
-		private void RefreshExceptChart() {
-			if (globe != null)
-				globe.Render = 2;
-			if (sky != null)
-				sky.Render = 2;
+		private void RefreshExceptChart(RenderForm.RefreshType NewRefreshFlag = RenderForm.RefreshType.RefreshSettings) {
+			globe?.CancelRenderSleep(NewRefreshFlag);
+			sky?.CancelRenderSleep(NewRefreshFlag);
 		}
 		#endregion
 
@@ -701,9 +755,8 @@ namespace GlobeSimulator {
 			return nu / TWO_PI;
 		}
 		// Compute distance r from true anomaly
-		private float Radius(float nu) {
-			return (1 - Eccentricity * Eccentricity) / (1 + Eccentricity * MathF.Cos(nu));
-		}
+		private float Radius(float nu)
+			=> (1 - Eccentricity * Eccentricity) / (1 + Eccentricity * MathF.Cos(nu));
 		private (int, double) GetEccentricLerp(double yearAlpha) {
 			double yearAlphaS = yearAlpha * 1024;
 			int index = (int)yearAlphaS;
