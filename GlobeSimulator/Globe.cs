@@ -50,7 +50,7 @@ namespace GlobeSimulator {
 		}
 		protected unsafe override void Function_DrawBitmap(ParallelOptions po, BitmapData locked, byte* bmpPtr) {
 			// Orbit Radians (Z rotation)
-			var yearRad = GetYearRad(currentTime);
+			var yearRad = GetYearRad(timeB);
 			float cosZ = (float)Math.Cos(yearRad), sinZ = (float)Math.Sin(yearRad);
 			var mapScale = Math.Min(MyParent.MapEarth.GetLength(0) / 360, MyParent.MapEarth.GetLength(1) / 180);
 			
@@ -194,7 +194,7 @@ namespace GlobeSimulator {
 			}
 			
 			//Draws Observer's Local Axes (Red-East, Green-North, Blue-Up)
-			/*var Up_Local = GetObserver(currentTime, yearRad, OnLatitude);
+			/*var Up_Local = GetObserver(timeB, yearRad, OnLatitude);
 			(var North_Local, var East_Local) = GetNorthEast(yearRad, Up_Local);
 			for (float a = 0.01f; a < 0.1f; a += 0.01f) {
 				DrawPoint(bmpPtr, locked.Stride, Up_Local + a * East_Local, 255, 0, 0);

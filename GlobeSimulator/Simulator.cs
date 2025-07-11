@@ -64,9 +64,12 @@ namespace GlobeSimulator {
 		private int MaxSkySuns;
 
 		// Variables:
-		internal double Time = 0;
+		internal double Time;
+		internal int Period;
 		private readonly Stopwatch stopwatch;
-		private bool lockDateTime; 
+		private bool lockDateTime;
+		internal readonly object
+			timeLock = new();   // Monitor lock for atomic change in time
 
 		// Precomputed variables:
 		internal double EquinoxShift; // When is Fall Equinox in my time format?
@@ -111,6 +114,7 @@ namespace GlobeSimulator {
 		#region Events
 		public Simulator() {
 			lockDateTime = true;
+			Time = Period = 0;
 			Earth = new();
 			R = new float[1025];
 			Nu = new float[1025];
@@ -181,10 +185,9 @@ namespace GlobeSimulator {
 			if (TimeSpeed <= 0)
 				return;
 			// Animates time
-			if (Rewind)
-				Time = Math.Max(0.0, Time - TimeSpeed * elapsed);
-			else
-				Time += TimeSpeed * elapsed;
+			lock (timeLock) {
+				UpdatePeriod(LeapYears == 0 ? 1 : LeapYears, Rewind ? Math.Max(0.0, Time - TimeSpeed * elapsed) : Time + TimeSpeed * elapsed);
+			}
 			RefreshAll();
 			UpdateTime();
 		}
@@ -255,10 +258,10 @@ namespace GlobeSimulator {
 				&& LeapDay == Earth.LeapDay
 			) {
 				// Add the remaining Years after 2000, accounting for different sized because of Leap Yeears:
-				var Leaps = (Year / LeapYears) * 4;
-				double NewTime = Leaps; // add quadruples of years (every 4 years is exactly 4 in my Time format)
-				Year -= Leaps; // subtract those used quadruples of years from the picked date time
-				// Take a calendar with a leap year
+				var Leaps = Year / LeapYears;
+				double NewTime = 0; // add quadruples of years 
+				Year -= Leaps * LeapYears; // subtract those used quadruples of years from the picked date time (every LeapYears years is exactly 4 in my Time format)
+							   // Take a calendar with a leap year
 				int[] LeapCalendar = new int[12];
 				Calendar.CopyTo(LeapCalendar, 0);
 				// set february to 28 days if the year is not leap
@@ -280,7 +283,10 @@ namespace GlobeSimulator {
 				while (Month > 0) {
 					NewTime += OneDay * LeapCalendar[--Month];
 				}
-				Time = NewTime + OneDay * Day + DTime * OneSecond;
+				lock (timeLock) {
+					Period = Leaps;
+					UpdatePeriod(LeapYears == 0 ? 1 : LeapYears, NewTime + OneDay * Day + DTime * OneSecond);
+				}
 			} else {
 				_ = MessageBox.Show("Settings do not match Earth!", "Cannot set date-time!", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
@@ -608,6 +614,17 @@ namespace GlobeSimulator {
 		#endregion
 
 		#region Functions
+		private void UpdatePeriod(int Years, double NewTime) {
+			Time = NewTime;
+			while (Time >= Years) {
+				Time -= Years;
+				Period += Years;
+			}
+			while (Time < 0) {
+				Time += Years;
+				Period -= Years;
+			}
+		}
 		private void UpdateTime() {
 			// Earth's Date and Time only makes sense if these parameters match Earth's:
 			if (Tilt == Earth.Tilt
@@ -616,7 +633,7 @@ namespace GlobeSimulator {
 				&& LeapYears == Earth.LeapYears
 				&& LeapDay == Earth.LeapDay
 			) {
-				int Year = 2000;
+				int Year = 2000 + (LeapYears == 0 ? 1 : LeapYears) * Period;
 				var DayTime = Skipleaps(Time);
 				int Add = (int)(DayTime / LeapYearMultiplier);
 				Year += Add;

@@ -22,7 +22,9 @@ namespace GlobeSimulator {
 			currentTime,		// latest fetched time
 			timeA,				// min(current,prev)
 			timeB;				// max(current,prev)
-		protected int 
+		protected int
+			prevPeriod,         // latest drawn period
+			currentPeriod,      // latest fetched period
 			screenX = 12,		// left padding
 			screenY = 12,		// top padding
 			screenW = 12,		// right padding
@@ -68,6 +70,12 @@ namespace GlobeSimulator {
 		internal void CancelRenderSleep(RefreshType NewRefreshFlag) {
 			RefreshFlag = NewRefreshFlag;
 			cancelRefresh?.Cancel();
+		}
+		private void SetPrevTime() {
+			lock (MyParent.timeLock) {
+				prevTime = currentTime;
+				prevPeriod = currentPeriod;
+			}
 		}
 		internal void Reset() {
 			if (MyParent == null)
@@ -159,13 +167,16 @@ namespace GlobeSimulator {
 					return;
 				}
 				// sample the time, update the map if the time is different and frame is requested, or it a refresh is requested
-				currentTime = MyParent.Time;
+				lock (MyParent.timeLock) {
+					currentTime = MyParent.Time;
+					currentPeriod = MyParent.Period;
+				}
 				if (RefreshFlag >= RefreshType.RefreshSettings || currentTime != prevTime && RefreshFlag > RefreshType.DontRefresh) {
-					if(RefreshFlag == RefreshType.RefreshReset)
-						prevTime = currentTime;
+					if (RefreshFlag == RefreshType.RefreshReset)
+						SetPrevTime();
 					RefreshFlag = RefreshType.DontRefresh; // just refreshed, so reset the flag to not refresh again until 
 					Task_DrawBitmap();
-					prevTime = currentTime;
+					SetPrevTime();
 				}
 				try {
 					
@@ -189,11 +200,17 @@ namespace GlobeSimulator {
 				byte* bmpPtr = (byte*)(void*)locked.Scan0;
 				try {
 					// sort the time interval to handle time running in both directions:
-					timeA = Math.Min(prevTime, currentTime);
-					timeB = Math.Max(prevTime, currentTime);
+					timeA = currentTime; timeB = prevTime;
+					// place one time one period ahead if it's in the next period slot to connect those periods.
+					if (currentPeriod > prevPeriod)
+						timeA += Math.Max(1, MyParent.LeapYears);
+					if (currentPeriod < prevPeriod)
+						timeB += Math.Max(1, MyParent.LeapYears);
+					// make sure the timeB is after the timeA
+					if (timeB < timeA)
+						(timeA, timeB) = (timeB, timeA);
 					// draw the bitmap:
 					Function_DrawBitmap(po, locked, bmpPtr);
-
 				} catch { }
 
 			}
